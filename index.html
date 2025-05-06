@@ -19,6 +19,9 @@
   <div id="form-container"></div>
   <script src="//cdn.jsdelivr.net/npm/protobufjs@7.X.X/dist/protobuf.min.js"></script>
   <script type="module">
+    let port;
+    let writer;
+    let root;
  // Charger le fichier .proto
  protobuf.load("./uart.proto").then(loadedRoot => {
     root = loadedRoot;
