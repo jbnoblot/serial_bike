@@ -16,100 +16,142 @@
     <option value="borne_liberee">Borne Libérée</option>
     <option value="batterie">Batterie</option>
   </select>
+  <div id="form-container"></div>
   <script src="//cdn.jsdelivr.net/npm/protobufjs@7.X.X/dist/protobuf.min.js"></script>
   <script type="module">
-    let port;
-    let writer;
-    let root;
+ // Charger le fichier .proto
+ protobuf.load("./uart.proto").then(loadedRoot => {
+    root = loadedRoot;
+    console.log("Fichier .proto chargé avec succès !");
+  }).catch(err => {
+    console.error("Erreur lors du chargement du fichier .proto :", err);
+  });
 
-    // Charger le fichier .proto
-    protobuf.load("./uart.proto").then(loadedRoot => {
-      root = loadedRoot;
-      console.log("Fichier .proto chargé avec succès !");
-    }).catch(err => {
-      console.error("Erreur lors du chargement du fichier .proto :", err);
-    });
+  // Générer dynamiquement un formulaire pour le message sélectionné
+  document.getElementById('action').addEventListener('change', () => {
+    const action = document.getElementById('action').value;
+    const formContainer = document.getElementById('form-container');
+    formContainer.innerHTML = ''; // Réinitialiser le formulaire
 
-    document.getElementById('connect').addEventListener('click', async () => {
-      try {
-        port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 9600 });
-        writer = port.writable.getWriter();
-        console.log('Port série connecté');
-      } catch (err) {
-        console.error('Erreur de connexion au port série:', err);
-      }
-    });
-
-    document.getElementById('send').addEventListener('click', async () => {
-      if (!writer) {
-        alert('Connectez d\'abord au port série.');
+    let messageType;
+    switch (action) {
+      case 'connexion':
+        messageType = root.lookupType("vlock.uart.Connexion");
+        break;
+      case 'deconnexion':
+        messageType = root.lookupType("vlock.uart.Deconnexion");
+        break;
+      case 'borne_occupee':
+        messageType = root.lookupType("vlock.uart.BorneOccupee");
+        break;
+      case 'borne_liberee':
+        messageType = root.lookupType("vlock.uart.BorneLiberee");
+        break;
+      case 'batterie':
+        messageType = root.lookupType("vlock.uart.Batterie");
+        break;
+      default:
         return;
+    }
+
+    // Introspecter les champs du message et générer un formulaire
+    if (messageType) {
+      const fields = messageType.fields;
+      for (const [fieldName, fieldInfo] of Object.entries(fields)) {
+        const label = document.createElement('label');
+        label.textContent = `${fieldName} (${fieldInfo.type})`;
+        label.htmlFor = fieldName;
+
+        const input = document.createElement('input');
+        input.id = fieldName;
+        input.name = fieldName;
+        input.type = 'text'; // Par défaut, utiliser un champ texte
+        input.placeholder = `Entrez ${fieldName}`;
+
+        formContainer.appendChild(label);
+        formContainer.appendChild(input);
+        formContainer.appendChild(document.createElement('br'));
       }
+    }
+  });
 
-      const action = document.getElementById('action').value;
-      let message;
+  // Connecter au port série
+  document.getElementById('connect').addEventListener('click', async () => {
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      writer = port.writable.getWriter();
+      console.log('Port série connecté');
+    } catch (err) {
+      console.error('Erreur de connexion au port série:', err);
+    }
+  });
 
-      // Obtenir les types de messages depuis le fichier .proto
-      const DeviceMessage = root.lookupType("vlock.uart.DeviceMessage");
-      const Connexion = root.lookupType("vlock.uart.Connexion");
-      const Deconnexion = root.lookupType("vlock.uart.Deconnexion");
-      const BorneOccupee = root.lookupType("vlock.uart.BorneOccupee");
-      const BorneLiberee = root.lookupType("vlock.uart.BorneLiberee");
-      const Batterie = root.lookupType("vlock.uart.Batterie");
+  // Envoyer le message via Web Serial
+  document.getElementById('send').addEventListener('click', async () => {
+    if (!writer) {
+      alert('Connectez d\'abord au port série.');
+      return;
+    }
 
-      switch (action) {
-        case 'connexion':
-          const connexionPayload = { heartbeat: 60 }; // Exemple de valeur
-          const connexionMessage = Connexion.create(connexionPayload);
-          message = DeviceMessage.create({ connexion: connexionMessage });
-          break;
+    const action = document.getElementById('action').value;
+    const formContainer = document.getElementById('form-container');
+    const inputs = formContainer.querySelectorAll('input');
+    const payload = {};
 
-        case 'deconnexion':
-          message = DeviceMessage.create({ deconnexion: {} });
-          break;
-
-        case 'borne_occupee':
-          const borneOccupeePayload = {
-            borne_id: 1,
-            cadenas: 'G',
-            user_id: 'user_001'
-          };
-          const borneOccupeeMessage = BorneOccupee.create(borneOccupeePayload);
-          message = DeviceMessage.create({ borne_occupee: borneOccupeeMessage });
-          break;
-
-        case 'borne_liberee':
-          const borneLibereePayload = {
-            borne_id: 1,
-            cadenas: 'G'
-          };
-          const borneLibereeMessage = BorneLiberee.create(borneLibereePayload);
-          message = DeviceMessage.create({ borne_liberee: borneLibereeMessage });
-          break;
-
-        case 'batterie':
-          const batteriePayload = { niveau_batterie: 85 }; // Exemple de valeur
-          const batterieMessage = Batterie.create(batteriePayload);
-          message = DeviceMessage.create({ batterie: batterieMessage });
-          break;
-
-        default:
-          alert('Action non reconnue.');
-          return;
-      }
-
-      // Sérialiser le message en binaire
-      const binaryMessage = DeviceMessage.encode(message).finish();
-
-      // Envoyer le message via Web Serial
-      try {
-        await writer.write(binaryMessage);
-        console.log('Message envoyé:', binaryMessage);
-      } catch (err) {
-        console.error('Erreur lors de l\'envoi du message:', err);
-      }
+    // Récupérer les valeurs des champs du formulaire
+    inputs.forEach(input => {
+      payload[input.name] = isNaN(input.value) ? input.value : Number(input.value);
     });
-  </script>
+
+    let message;
+    const DeviceMessage = root.lookupType("vlock.uart.DeviceMessage");
+
+    switch (action) {
+      case 'connexion':
+        const Connexion = root.lookupType("vlock.uart.Connexion");
+        const connexionMessage = Connexion.create(payload);
+        message = DeviceMessage.create({ connexion: connexionMessage });
+        break;
+
+      case 'deconnexion':
+        message = DeviceMessage.create({ deconnexion: {} });
+        break;
+
+      case 'borne_occupee':
+        const BorneOccupee = root.lookupType("vlock.uart.BorneOccupee");
+        const borneOccupeeMessage = BorneOccupee.create(payload);
+        message = DeviceMessage.create({ borne_occupee: borneOccupeeMessage });
+        break;
+
+      case 'borne_liberee':
+        const BorneLiberee = root.lookupType("vlock.uart.BorneLiberee");
+        const borneLibereeMessage = BorneLiberee.create(payload);
+        message = DeviceMessage.create({ borne_liberee: borneLibereeMessage });
+        break;
+
+      case 'batterie':
+        const Batterie = root.lookupType("vlock.uart.Batterie");
+        const batterieMessage = Batterie.create(payload);
+        message = DeviceMessage.create({ batterie: batterieMessage });
+        break;
+
+      default:
+        alert('Action non reconnue.');
+        return;
+    }
+
+    // Sérialiser le message en binaire
+    const binaryMessage = DeviceMessage.encode(message).finish();
+
+    // Envoyer le message via Web Serial
+    try {
+      await writer.write(binaryMessage);
+      console.log('Message envoyé:', binaryMessage);
+    } catch (err) {
+      console.error('Erreur lors de l\'envoi du message:', err);
+    }
+  });
+</script>
 </body>
 </html>
