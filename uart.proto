@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package vlock.uart;
+
+message DeviceMessage {
+  oneof payload {
+    Connexion connexion = 2;
+    Deconnexion deconnexion = 3;
+    BorneOccupee borne_occupee = 4;
+    BorneLiberee borne_liberee = 5;
+    Batterie batterie = 6;
+  }
+}
+
+message Connexion {
+  uint32 heartbeat = 1;
+}
+
+message Deconnexion {}
+
+message BorneOccupee {
+  uint32 borne_id = 1;
+  string cadenas = 2;
+  string user_id = 3;
+}
+
+message BorneLiberee {
+  uint32 borne_id = 1;
+  string cadenas = 2;
+}
+
+message Batterie {
+  int32 niveau_batterie = 1;
+}
