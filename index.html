@@ -124,13 +124,13 @@
       case 'borne_occupee':
         const BorneOccupee = root.lookupType("vlock.uart.BorneOccupee");
         const borneOccupeeMessage = BorneOccupee.create(payload);
-        message = DeviceMessage.create({ borne_occupee: borneOccupeeMessage });
+        message = DeviceMessage.create({ borneOccupee: borneOccupeeMessage });
         break;
 
       case 'borne_liberee':
         const BorneLiberee = root.lookupType("vlock.uart.BorneLiberee");
         const borneLibereeMessage = BorneLiberee.create(payload);
-        message = DeviceMessage.create({ borne_liberee: borneLibereeMessage });
+        message = DeviceMessage.create({ borneLiberee: borneLibereeMessage });
         break;
 
       case 'batterie':
