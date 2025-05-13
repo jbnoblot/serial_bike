@@ -17,6 +17,12 @@
     <option value="batterie">Batterie</option>
   </select>
   <div id="form-container"></div>
+  <label for="persistent">Persistent:</label>
+  <input type="checkbox" id="inputPersistent" name="persistent">
+  <label for="timestamp">Timestamp:</label>
+  <input type="datetime-local" id="inputTimestamp" name="timestamp" placeholder="Timestamp">
+  <label for="id">ID:</label>
+  <input type="text" id="inputId" name="id" placeholder="ID">
   <script src="//cdn.jsdelivr.net/npm/protobufjs@7.X.X/dist/protobuf.min.js"></script>
   <script type="module">
     let port;
@@ -100,6 +106,9 @@
     const action = document.getElementById('action').value;
     const formContainer = document.getElementById('form-container');
     const inputs = formContainer.querySelectorAll('input');
+    const inputPersistent = document.getElementById('inputPersistent').checked;
+    const inputTimestamp = new Date(document.getElementById('inputTimestamp').value).getTime();
+    const inputId = document.getElementById('inputId').value;
     const payload = {};
 
     // Récupérer les valeurs des champs du formulaire
@@ -114,29 +123,29 @@
       case 'connexion':
         const Connexion = root.lookupType("vlock.uart.Connexion");
         const connexionMessage = Connexion.create(payload);
-        message = DeviceMessage.create({ connexion: connexionMessage });
+        message = DeviceMessage.create({ connexion: connexionMessage, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
         break;
 
       case 'deconnexion':
-        message = DeviceMessage.create({ deconnexion: {} });
+        message = DeviceMessage.create({ deconnexion: {}, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
         break;
 
       case 'borne_occupee':
         const BorneOccupee = root.lookupType("vlock.uart.BorneOccupee");
         const borneOccupeeMessage = BorneOccupee.create(payload);
-        message = DeviceMessage.create({ borneOccupee: borneOccupeeMessage });
+        message = DeviceMessage.create({ borneOccupee: borneOccupeeMessage, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
         break;
 
       case 'borne_liberee':
         const BorneLiberee = root.lookupType("vlock.uart.BorneLiberee");
         const borneLibereeMessage = BorneLiberee.create(payload);
-        message = DeviceMessage.create({ borneLiberee: borneLibereeMessage });
+        message = DeviceMessage.create({ borneLiberee: borneLibereeMessage, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
         break;
 
       case 'batterie':
         const Batterie = root.lookupType("vlock.uart.Batterie");
         const batterieMessage = Batterie.create(payload);
-        message = DeviceMessage.create({ batterie: batterieMessage });
+        message = DeviceMessage.create({ batterie: batterieMessage, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
         break;
 
       default:
