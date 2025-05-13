@@ -107,8 +107,16 @@
     const formContainer = document.getElementById('form-container');
     const inputs = formContainer.querySelectorAll('input');
     const inputPersistent = document.getElementById('inputPersistent').checked;
-    const inputTimestamp = new Date(document.getElementById('inputTimestamp').value).getTime();
-    const inputId = document.getElementById('inputId').value;
+    const inputTimestampRaw = document.getElementById('inputTimestamp').value;
+    const inputIdRaw = document.getElementById('inputId').value;
+    let inputTimestamp = null;
+    if (inputTimestampRaw) {
+      inputTimestamp = new Date(inputTimestampRaw).getTime();
+    }
+    let inputId = null;
+    if (inputIdRaw) {
+      inputId = inputIdRaw;
+    }
     const payload = {};
 
     // Récupérer les valeurs des champs du formulaire
