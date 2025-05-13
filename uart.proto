@@ -10,6 +10,9 @@ message DeviceMessage {
     BorneLiberee borne_liberee = 5;
     Batterie batterie = 6;
   }
+  optional bool persistent = 7;
+  optional uint64 timestamp = 8;
+  optional bytes id = 9;
 }
 
 message Connexion {
