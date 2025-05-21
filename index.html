@@ -23,6 +23,44 @@
   <input type="datetime-local" id="inputTimestamp" name="timestamp" placeholder="Timestamp">
   <label for="id">ID:</label>
   <input type="text" id="inputId" name="id" placeholder="ID">
+  <br/>
+  <fieldset>
+    <legend>Retour UART</legend>
+    <div id="uart-output" style="height:500px; overflow:auto;"></div>
+    <button type="button" id="clear-uart">Clear</button>
+  </fieldset>
+  <script>
+    const uartOutput = document.getElementById('uart-output');
+    const clearBtn = document.getElementById('clear-uart');
+
+    clearBtn.addEventListener('click', () => {
+      uartOutput.textContent = '';
+    });
+
+    // Lecture UART si disponible
+    async function readUART() {
+      if (!port) return;
+      try {
+        const reader = port.readable.getReader();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            const text = new TextDecoder().decode(value);
+            uartOutput.textContent += text + '\n';
+            uartOutput.scrollTop = uartOutput.scrollHeight;
+          }
+        }
+        reader.releaseLock();
+      } catch (e) {
+        // Ignore errors on disconnect
+      }
+    }
+
+    document.getElementById('connect').addEventListener('click', () => {
+      setTimeout(readUART, 500);
+    });
+  </script>
   <script src="//cdn.jsdelivr.net/npm/protobufjs@7.X.X/dist/protobuf.min.js"></script>
   <script type="module">
     let port;
