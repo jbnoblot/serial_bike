@@ -1,215 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebSerial avec Protocol Buffers</title>
-</head>
-<body>
-  <h1>Contrôle via WebSerial</h1>
-  <button id="connect">Connecter au port série</button>
-  <button id="send">Envoyer un message</button>
-  <select id="action">
-    <option value="connexion">Connexion</option>
-    <option value="deconnexion">Déconnexion</option>
-    <option value="borne_occupee">Borne Occupée</option>
-    <option value="borne_liberee">Borne Libérée</option>
-    <option value="batterie">Batterie</option>
-  </select>
-  <div id="form-container"></div>
-  <label for="persistent">Persistent:</label>
-  <input type="checkbox" id="inputPersistent" name="persistent">
-  <label for="timestamp">Timestamp:</label>
-  <input type="datetime-local" id="inputTimestamp" name="timestamp" placeholder="Timestamp">
-  <label for="id">ID:</label>
-  <input type="text" id="inputId" name="id" placeholder="ID">
-  <br/>
-  <fieldset>
-    <legend>Retour UART</legend>
-    <div id="uart-output" style="height:500px; overflow:auto;"></div>
-    <button type="button" id="clear-uart">Clear</button>
-  </fieldset>
-  <script>
-    const uartOutput = document.getElementById('uart-output');
-    const clearBtn = document.getElementById('clear-uart');
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSerial avec Protocol Buffers</title>
+  </head>
+  <body>
+    <h1>Contrôle via WebSerial</h1>
+    <button id="connect">Connecter au port série</button>
+    <button id="send">Envoyer un message</button>
+    <select id="action">
+      <option value="connexion">Connexion</option>
+      <option value="deconnexion">Déconnexion</option>
+      <option value="borne_occupee">Borne Occupée</option>
+      <option value="borne_liberee">Borne Libérée</option>
+      <option value="batterie">Batterie</option>
+    </select>
+    <div id="form-container"></div>
+    <label for="persistent">Persistent:</label>
+    <input type="checkbox" id="inputPersistent" name="persistent" />
+    <label for="timestamp">Timestamp:</label>
+    <input
+      type="datetime-local"
+      id="inputTimestamp"
+      name="timestamp"
+      placeholder="Timestamp"
+    />
+    <label for="id">ID:</label>
+    <input type="text" id="inputId" name="id" placeholder="ID" />
+    <br />
+    <fieldset>
+      <legend>Retour UART</legend>
+      <div id="uart-output" style="height: 500px; overflow: auto"></div>
+      <button type="button" id="clear-uart">Clear</button>
+    </fieldset>
+    <script></script>
+    <script src="//cdn.jsdelivr.net/npm/protobufjs@7.X.X/dist/protobuf.min.js"></script>
+    <script type="module">
+      let port;
+      let writer;
+      let root;
+      // Charger le fichier .proto
+      protobuf
+        .load("./uart.proto")
+        .then((loadedRoot) => {
+          root = loadedRoot;
+          console.log("Fichier .proto chargé avec succès !");
+        })
+        .catch((err) => {
+          console.error("Erreur lors du chargement du fichier .proto :", err);
+        });
 
-    clearBtn.addEventListener('click', () => {
-      uartOutput.textContent = '';
-    });
+      // Générer dynamiquement un formulaire pour le message sélectionné
+      document.getElementById("action").addEventListener("change", () => {
+        const action = document.getElementById("action").value;
+        const formContainer = document.getElementById("form-container");
+        formContainer.innerHTML = ""; // Réinitialiser le formulaire
 
-    // Lecture UART si disponible
-    async function readUART() {
-      if (!port) return;
-      try {
-        const reader = port.readable.getReader();
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) {
-            const text = new TextDecoder().decode(value);
-            uartOutput.textContent += text + '\n';
-            uartOutput.scrollTop = uartOutput.scrollHeight;
+        let messageType;
+        switch (action) {
+          case "connexion":
+            messageType = root.lookupType("vlock.uart.Connexion");
+            break;
+          case "deconnexion":
+            messageType = root.lookupType("vlock.uart.Deconnexion");
+            break;
+          case "borne_occupee":
+            messageType = root.lookupType("vlock.uart.BorneOccupee");
+            break;
+          case "borne_liberee":
+            messageType = root.lookupType("vlock.uart.BorneLiberee");
+            break;
+          case "batterie":
+            messageType = root.lookupType("vlock.uart.Batterie");
+            break;
+          default:
+            return;
+        }
+
+        // Introspecter les champs du message et générer un formulaire
+        if (messageType) {
+          const fields = messageType.fields;
+          for (const [fieldName, fieldInfo] of Object.entries(fields)) {
+            const label = document.createElement("label");
+            label.textContent = `${fieldName} (${fieldInfo.type})`;
+            label.htmlFor = fieldName;
+
+            const input = document.createElement("input");
+            input.id = fieldName;
+            input.name = fieldName;
+            input.type = "text"; // Par défaut, utiliser un champ texte
+            input.placeholder = `Entrez ${fieldName}`;
+
+            formContainer.appendChild(label);
+            formContainer.appendChild(input);
+            formContainer.appendChild(document.createElement("br"));
           }
         }
-        reader.releaseLock();
-      } catch (e) {
-        // Ignore errors on disconnect
+      });
+
+      // Connecter au port série
+      document.getElementById("connect").addEventListener("click", async () => {
+        try {
+          port = await navigator.serial.requestPort();
+          await port.open({ baudRate: 9600 });
+          writer = port.writable.getWriter();
+          console.log("Port série connecté");
+        } catch (err) {
+          console.error("Erreur de connexion au port série:", err);
+        }
+      });
+
+      // Envoyer le message via Web Serial
+      document.getElementById("send").addEventListener("click", async () => {
+        if (!writer) {
+          alert("Connectez d'abord au port série.");
+          return;
+        }
+
+        const action = document.getElementById("action").value;
+        const formContainer = document.getElementById("form-container");
+        const inputs = formContainer.querySelectorAll("input");
+        const inputPersistent =
+          document.getElementById("inputPersistent").checked;
+        const inputTimestampRaw =
+          document.getElementById("inputTimestamp").value;
+        const inputIdRaw = document.getElementById("inputId").value;
+        let inputTimestamp = null;
+        if (inputTimestampRaw) {
+          inputTimestamp = new Date(inputTimestampRaw).getTime();
+        }
+        let inputId = null;
+        if (inputIdRaw) {
+          inputId = inputIdRaw;
+        }
+        const payload = {};
+
+        // Récupérer les valeurs des champs du formulaire
+        inputs.forEach((input) => {
+          payload[input.name] = isNaN(input.value)
+            ? input.value
+            : Number(input.value);
+        });
+
+        let message;
+        const DeviceMessage = root.lookupType("vlock.uart.DeviceMessage");
+
+        switch (action) {
+          case "connexion":
+            const Connexion = root.lookupType("vlock.uart.Connexion");
+            const connexionMessage = Connexion.create(payload);
+            message = DeviceMessage.create({
+              connexion: connexionMessage,
+              persistent: inputPersistent,
+              timestamp: inputTimestamp,
+              id: inputId,
+            });
+            break;
+
+          case "deconnexion":
+            message = DeviceMessage.create({
+              deconnexion: {},
+              persistent: inputPersistent,
+              timestamp: inputTimestamp,
+              id: inputId,
+            });
+            break;
+
+          case "borne_occupee":
+            const BorneOccupee = root.lookupType("vlock.uart.BorneOccupee");
+            const borneOccupeeMessage = BorneOccupee.create(payload);
+            message = DeviceMessage.create({
+              borneOccupee: borneOccupeeMessage,
+              persistent: inputPersistent,
+              timestamp: inputTimestamp,
+              id: inputId,
+            });
+            break;
+
+          case "borne_liberee":
+            const BorneLiberee = root.lookupType("vlock.uart.BorneLiberee");
+            const borneLibereeMessage = BorneLiberee.create(payload);
+            message = DeviceMessage.create({
+              borneLiberee: borneLibereeMessage,
+              persistent: inputPersistent,
+              timestamp: inputTimestamp,
+              id: inputId,
+            });
+            break;
+
+          case "batterie":
+            const Batterie = root.lookupType("vlock.uart.Batterie");
+            const batterieMessage = Batterie.create(payload);
+            message = DeviceMessage.create({
+              batterie: batterieMessage,
+              persistent: inputPersistent,
+              timestamp: inputTimestamp,
+              id: inputId,
+            });
+            break;
+
+          default:
+            alert("Action non reconnue.");
+            return;
+        }
+
+        // Sérialiser le message en binaire
+        const binaryMessage = DeviceMessage.encode(message).finish();
+
+        // Envoyer le message via Web Serial
+        try {
+          await writer.write(binaryMessage);
+          console.log("Message envoyé:", binaryMessage);
+        } catch (err) {
+          console.error("Erreur lors de l'envoi du message:", err);
+        }
+      });
+
+      const uartOutput = document.getElementById("uart-output");
+      const clearBtn = document.getElementById("clear-uart");
+
+      clearBtn.addEventListener("click", () => {
+        uartOutput.textContent = "";
+      });
+
+      // Lecture UART si disponible
+      async function readUART() {
+        if (!port) return;
+        try {
+          const reader = port.readable.getReader();
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) {
+              const text = new TextDecoder().decode(value);
+              uartOutput.textContent += text + "\n";
+              uartOutput.scrollTop = uartOutput.scrollHeight;
+            }
+          }
+          reader.releaseLock();
+        } catch (e) {
+          // Ignore errors on disconnect
+        }
       }
-    }
 
-    document.getElementById('connect').addEventListener('click', () => {
-      setTimeout(readUART, 500);
-    });
-  </script>
-  <script src="//cdn.jsdelivr.net/npm/protobufjs@7.X.X/dist/protobuf.min.js"></script>
-  <script type="module">
-    let port;
-    let writer;
-    let root;
- // Charger le fichier .proto
- protobuf.load("./uart.proto").then(loadedRoot => {
-    root = loadedRoot;
-    console.log("Fichier .proto chargé avec succès !");
-  }).catch(err => {
-    console.error("Erreur lors du chargement du fichier .proto :", err);
-  });
-
-  // Générer dynamiquement un formulaire pour le message sélectionné
-  document.getElementById('action').addEventListener('change', () => {
-    const action = document.getElementById('action').value;
-    const formContainer = document.getElementById('form-container');
-    formContainer.innerHTML = ''; // Réinitialiser le formulaire
-
-    let messageType;
-    switch (action) {
-      case 'connexion':
-        messageType = root.lookupType("vlock.uart.Connexion");
-        break;
-      case 'deconnexion':
-        messageType = root.lookupType("vlock.uart.Deconnexion");
-        break;
-      case 'borne_occupee':
-        messageType = root.lookupType("vlock.uart.BorneOccupee");
-        break;
-      case 'borne_liberee':
-        messageType = root.lookupType("vlock.uart.BorneLiberee");
-        break;
-      case 'batterie':
-        messageType = root.lookupType("vlock.uart.Batterie");
-        break;
-      default:
-        return;
-    }
-
-    // Introspecter les champs du message et générer un formulaire
-    if (messageType) {
-      const fields = messageType.fields;
-      for (const [fieldName, fieldInfo] of Object.entries(fields)) {
-        const label = document.createElement('label');
-        label.textContent = `${fieldName} (${fieldInfo.type})`;
-        label.htmlFor = fieldName;
-
-        const input = document.createElement('input');
-        input.id = fieldName;
-        input.name = fieldName;
-        input.type = 'text'; // Par défaut, utiliser un champ texte
-        input.placeholder = `Entrez ${fieldName}`;
-
-        formContainer.appendChild(label);
-        formContainer.appendChild(input);
-        formContainer.appendChild(document.createElement('br'));
-      }
-    }
-  });
-
-  // Connecter au port série
-  document.getElementById('connect').addEventListener('click', async () => {
-    try {
-      port = await navigator.serial.requestPort();
-      await port.open({ baudRate: 9600 });
-      writer = port.writable.getWriter();
-      console.log('Port série connecté');
-    } catch (err) {
-      console.error('Erreur de connexion au port série:', err);
-    }
-  });
-
-  // Envoyer le message via Web Serial
-  document.getElementById('send').addEventListener('click', async () => {
-    if (!writer) {
-      alert('Connectez d\'abord au port série.');
-      return;
-    }
-
-    const action = document.getElementById('action').value;
-    const formContainer = document.getElementById('form-container');
-    const inputs = formContainer.querySelectorAll('input');
-    const inputPersistent = document.getElementById('inputPersistent').checked;
-    const inputTimestampRaw = document.getElementById('inputTimestamp').value;
-    const inputIdRaw = document.getElementById('inputId').value;
-    let inputTimestamp = null;
-    if (inputTimestampRaw) {
-      inputTimestamp = new Date(inputTimestampRaw).getTime();
-    }
-    let inputId = null;
-    if (inputIdRaw) {
-      inputId = inputIdRaw;
-    }
-    const payload = {};
-
-    // Récupérer les valeurs des champs du formulaire
-    inputs.forEach(input => {
-      payload[input.name] = isNaN(input.value) ? input.value : Number(input.value);
-    });
-
-    let message;
-    const DeviceMessage = root.lookupType("vlock.uart.DeviceMessage");
-
-    switch (action) {
-      case 'connexion':
-        const Connexion = root.lookupType("vlock.uart.Connexion");
-        const connexionMessage = Connexion.create(payload);
-        message = DeviceMessage.create({ connexion: connexionMessage, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
-        break;
-
-      case 'deconnexion':
-        message = DeviceMessage.create({ deconnexion: {}, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
-        break;
-
-      case 'borne_occupee':
-        const BorneOccupee = root.lookupType("vlock.uart.BorneOccupee");
-        const borneOccupeeMessage = BorneOccupee.create(payload);
-        message = DeviceMessage.create({ borneOccupee: borneOccupeeMessage, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
-        break;
-
-      case 'borne_liberee':
-        const BorneLiberee = root.lookupType("vlock.uart.BorneLiberee");
-        const borneLibereeMessage = BorneLiberee.create(payload);
-        message = DeviceMessage.create({ borneLiberee: borneLibereeMessage, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
-        break;
-
-      case 'batterie':
-        const Batterie = root.lookupType("vlock.uart.Batterie");
-        const batterieMessage = Batterie.create(payload);
-        message = DeviceMessage.create({ batterie: batterieMessage, persistent: inputPersistent, timestamp: inputTimestamp, id: inputId });
-        break;
-
-      default:
-        alert('Action non reconnue.');
-        return;
-    }
-
-    // Sérialiser le message en binaire
-    const binaryMessage = DeviceMessage.encode(message).finish();
-
-    // Envoyer le message via Web Serial
-    try {
-      await writer.write(binaryMessage);
-      console.log('Message envoyé:', binaryMessage);
-    } catch (err) {
-      console.error('Erreur lors de l\'envoi du message:', err);
-    }
-  });
-</script>
-</body>
+      document.getElementById("connect").addEventListener("click", () => {
+        setTimeout(readUART, 500);
+      });
+    </script>
+  </body>
 </html>
