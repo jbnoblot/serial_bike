@@ -106,6 +106,7 @@
           await port.open({ baudRate: 9600 });
           writer = port.writable.getWriter();
           console.log("Port série connecté");
+          readUART();
         } catch (err) {
           console.error("Erreur de connexion au port série:", err);
         }
@@ -226,7 +227,10 @@
 
       // Lecture UART si disponible
       async function readUART() {
-        if (!port) return;
+        if (!port) {
+          console.error("Port non connecté");
+          return;
+        }
         try {
           const reader = port.readable.getReader();
           while (true) {
@@ -243,10 +247,6 @@
           // Ignore errors on disconnect
         }
       }
-
-      document.getElementById("connect").addEventListener("click", () => {
-        setTimeout(readUART, 500);
-      });
     </script>
   </body>
 </html>
