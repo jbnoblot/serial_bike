@@ -15,6 +15,7 @@
       <option value="borne_occupee">Borne Occupée</option>
       <option value="borne_liberee">Borne Libérée</option>
       <option value="batterie">Batterie</option>
+      <option value="debug_uart">DebugUART</option>
     </select>
     <div id="form-container"></div>
     <label for="persistent">Persistent:</label>
@@ -73,6 +74,9 @@
             break;
           case "batterie":
             messageType = root.lookupType("vlock.uart.Batterie");
+            break;
+          case "debug_uart":
+            messageType = root.lookupType("vlock.uart.DebugUART");
             break;
           default:
             return;
@@ -197,6 +201,16 @@
               batterie: batterieMessage,
               persistent: inputPersistent,
               timestamp: inputTimestamp,
+              id: inputId,
+            });
+            break;
+          case "debug_uart":
+            const DebugUART = root.lookupType("vlock.uart.DebugUART");
+            const debugUartMessage = DebugUART.create(payload);
+            message = DeviceMessage.create({
+              debugUart: debugUartMessage,
+              persistent: inputPersistent,
+              timestamp: inputTimestamp, 
               id: inputId,
             });
             break;
