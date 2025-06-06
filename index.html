@@ -90,10 +90,33 @@
             label.textContent = `${fieldName} (${fieldInfo.type})`;
             label.htmlFor = fieldName;
 
-            const input = document.createElement("input");
+            let input;
+            if (
+              fieldInfo.type === "bool" ||
+              fieldInfo.type === "boolean"
+            ) {
+              input = document.createElement("input");
+              input.type = "checkbox";
+            } else if (
+              [
+                "int32",
+                "sint32",
+                "uint32",
+                "int64",
+                "sint64",
+                "uint64",
+                "float",
+                "double"
+              ].includes(fieldInfo.type)
+            ) {
+              input = document.createElement("input");
+              input.type = "number";
+            } else {
+              input = document.createElement("input");
+              input.type = "text";
+            }
             input.id = fieldName;
             input.name = fieldName;
-            input.type = "text"; // Par défaut, utiliser un champ texte
             input.placeholder = `Entrez ${fieldName}`;
 
             formContainer.appendChild(label);
