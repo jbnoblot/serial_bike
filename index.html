@@ -166,9 +166,13 @@
 
         // Récupérer les valeurs des champs du formulaire
         inputs.forEach((input) => {
-          payload[input.name] = isNaN(input.value)
-            ? input.value
-            : Number(input.value);
+          if (input.type === "checkbox") {
+            payload[input.name] = input.checked;
+          } else if (input.type === "number" && input.value !== "" && !isNaN(input.value)) {
+            payload[input.name] = Number(input.value);
+          } else {
+            payload[input.name] = input.value;
+          }
         });
 
         let message;
