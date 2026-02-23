@@ -36,7 +36,7 @@
       <button type="button" id="clear-uart">Clear</button>
     </fieldset>
     <script></script>
-    <script src="//cdn.jsdelivr.net/npm/protobufjs@7.X.X/dist/protobuf.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/protobufjs@8.X.X/dist/protobuf.min.js"></script>
     <script type="module">
       let port;
       let writer;
@@ -272,20 +272,39 @@
           console.error("Port non connecté");
           return;
         }
+        let reader;
         try {
-          const reader = port.readable.getReader();
+          reader = port.readable.getReader();
+          console.log("Lecture UART démarrée...");
           while (true) {
             const { value, done } = await reader.read();
-            if (done) break;
+            if (done) {
+              console.log("Flux terminé");
+              break;
+            }
             if (value) {
-              const text = new TextDecoder().decode(value);
-              uartOutput.textContent += text + "\n";
-              uartOutput.scrollTop = uartOutput.scrollHeight;
+              try {
+                const NtoCMessage = root.lookupType("vlock.uart.NtoCMessage");
+                const decodedMessage = NtoCMessage.decode(value);
+                const text = JSON.stringify(decodedMessage, null, 2);
+                console.log("Message reçu:", decodedMessage);
+                uartOutput.textContent += "=== Message reçu ===\n" + text + "\n\n";
+                uartOutput.scrollTop = uartOutput.scrollHeight;
+              } catch (decodeErr) {
+                console.error("Erreur de décodage:", decodeErr);
+                uartOutput.textContent += "❌ Erreur de décodage: " + decodeErr.message + "\n";
+              }
             }
           }
-          reader.releaseLock();
         } catch (e) {
-          // Ignore errors on disconnect
+          if (reader) {
+            try {
+              reader.releaseLock();
+            } catch (releaseErr) {
+              console.warn("Erreur lors du relâchement du lecteur:", releaseErr);
+            }
+          }
+          console.log("Lecture UART arrêtée:", e.message);
         }
       }
     </script>

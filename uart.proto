@@ -40,3 +40,21 @@ message Batterie {
 message DebugUART {
   bool active = 1;
 }
+
+message NtoCMessage {
+  oneof payload {
+    RetUART ret_uart = 1;
+    Unlock unlock = 2;
+    Reboot reboot = 3;
+  }
+}
+
+message RetUART {
+  uint32 return_code = 1;
+}
+
+message Unlock {
+  string cadenas = 1;
+}
+
+message Reboot {}
