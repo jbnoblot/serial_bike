@@ -10,10 +10,11 @@ message DeviceMessage {
     BorneLiberee borne_liberee = 5;
     Batterie batterie = 6;
     DebugUART debug_uart = 7;
+    RetUART ack = 8;
   }
-  optional bool persistent = 8;
-  optional uint64 timestamp = 9;
-  optional bytes id = 10;
+  optional bool persistent = 9;
+  optional uint64 timestamp = 10;
+  optional bytes id = 11;
 }
 
 message Connexion {
@@ -42,7 +43,7 @@ message DebugUART {
   bool active = 1;
 }
 
-message ServerMessage {
+message ActionReceive {
   oneof payload {
     RetUART ret_uart = 1;
     Unlock unlock = 2;
