@@ -34,14 +34,15 @@ message BorneLiberee {
 }
 
 message Batterie {
-  int32 niveau_batterie = 1;
+  uint32 borne_id = 1;
+  int32 niveau_batterie = 2;
 }
 
 message DebugUART {
   bool active = 1;
 }
 
-message NtoCMessage {
+message ServerMessage {
   oneof payload {
     RetUART ret_uart = 1;
     Unlock unlock = 2;
