@@ -131,10 +131,6 @@
     document.getElementById("connect").addEventListener("click", async () => {
       try {
         port = await navigator.serial.requestPort();
-        if (port.connected) {
-          console.warn("Port déjà connecté");
-          return;
-        }
         await port.open({ baudRate: 115200 });
         writer = port.writable.getWriter();
         console.log("Port série connecté");
