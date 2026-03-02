@@ -131,7 +131,11 @@
     document.getElementById("connect").addEventListener("click", async () => {
       try {
         port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 9600 });
+        if (port.connected) {
+          console.warn("Port déjà connecté");
+          return;
+        }
+        await port.open({ baudRate: 115200 });
         writer = port.writable.getWriter();
         console.log("Port série connecté");
         readUART();
@@ -286,6 +290,7 @@
       try {
         reader = port.readable.getReader();
         console.log("Lecture UART démarrée...");
+        const NtoCMessage = root.lookupType("vlock.uart.ActionReceive");
         while (true) {
           const { value, done } = await reader.read();
           if (done) {
@@ -294,7 +299,6 @@
           }
           if (value) {
             try {
-              const NtoCMessage = root.lookupType("vlock.uart.ActionReceive");
               const decodedMessage = NtoCMessage.decode(value);
               const text = JSON.stringify(decodedMessage, null, 2);
               console.log("Message reçu:", decodedMessage);
