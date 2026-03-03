@@ -297,6 +297,8 @@
           }
           if (value) {
             try {
+              console.log("Value reçu:", value);
+
               const decodedMessage = NtoCMessage.decode(value);
               const text = JSON.stringify(decodedMessage, null, 2);
               console.log("Message reçu:", decodedMessage);
