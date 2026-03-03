@@ -36,6 +36,7 @@
   <script></script>
   <script src="//cdn.jsdelivr.net/npm/protobufjs@8.X.X/dist/protobuf.min.js"></script>
   <script type="module">
+    /** @type {SerialPort} */
     let port;
     let writer;
     let root;
@@ -130,6 +131,7 @@
     // Connecter au port série
     document.getElementById("connect").addEventListener("click", async () => {
       try {
+        /** @type {SerialPort} */
         port = await navigator.serial.requestPort();
         await port.open({ baudRate: 115200 });
         writer = port.writable.getWriter();
@@ -315,7 +317,7 @@
           }
         }
         console.log("Lecture UART arrêtée:", e.message);
-        readUART();
+        readUART(); // Redémarrer la lecture en cas d'erreur
       }
     }
   </script>
