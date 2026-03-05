@@ -307,7 +307,7 @@
               uartOutput.scrollTop = uartOutput.scrollHeight;
               buffer = new Uint8Array(); // Réinitialiser le buffer après décodage réussi
             } catch (decodeErr) {
-              console.error("Erreur de décodage:", decodeErr);
+              console.error("Erreur de décodage", decodeErr, buffer);
               //uartOutput.textContent += "❌ Erreur de décodage: " + decodeErr.message + "\n";
             }
           }
