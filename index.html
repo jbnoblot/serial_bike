@@ -289,6 +289,7 @@
         reader = port.readable.getReader();
         console.log("Lecture UART démarrée...");
         const NtoCMessage = root.lookupType("vlock.uart.ActionReceive");
+        let buffer = new Uint8Array();
         while (true) {
           const { value, done } = await reader.read();
           if (done) {
@@ -298,15 +299,16 @@
           if (value) {
             try {
               console.log("Value reçu:", value);
-
-              const decodedMessage = NtoCMessage.decode(value);
+              buffer.set(value, buffer.length);
+              const decodedMessage = NtoCMessage.decode(buffer);
               const text = JSON.stringify(decodedMessage, null, 2);
               console.log("Message reçu:", decodedMessage);
               uartOutput.textContent += "=== Message reçu ===\n" + text + "\n\n";
               uartOutput.scrollTop = uartOutput.scrollHeight;
+              buffer = new Uint8Array(); // Réinitialiser le buffer après décodage réussi
             } catch (decodeErr) {
               console.error("Erreur de décodage:", decodeErr);
-              uartOutput.textContent += "❌ Erreur de décodage: " + decodeErr.message + "\n";
+              //uartOutput.textContent += "❌ Erreur de décodage: " + decodeErr.message + "\n";
             }
           }
         }
