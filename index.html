@@ -303,7 +303,7 @@
               const decodedMessage = NtoCMessage.decode(buffer);
               const text = JSON.stringify(decodedMessage, null, 2);
               console.log("Message reçu:", decodedMessage);
-              uartOutput.textContent += "=== Message reçu ===\n" + text + "\n\n";
+              uartOutput.innerHTML += "<div>=== Message reçu ===" + text + "</div>";
               uartOutput.scrollTop = uartOutput.scrollHeight;
               buffer = new Uint8Array(); // Réinitialiser le buffer après décodage réussi
             } catch (decodeErr) {
