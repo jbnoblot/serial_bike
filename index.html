@@ -19,6 +19,7 @@
     <option value="batterie">Batterie</option>
     <option value="debug_uart">DebugUART</option>
     <option value="ack">Ack</option>
+    <option value="listenCmd">ListenCmd</option>
   </select>
   <div id="form-container"></div>
   <label for="inputPersistent">Persistent:</label>
@@ -79,6 +80,9 @@
           break;
         case "ack":
           messageType = root.lookupType("vlock.uart.RetUART");
+          break;
+        case "listenCmd":
+          messageType = root.lookupType("vlock.uart.ListenCmd");
           break;
         default:
           return;
@@ -249,6 +253,16 @@
           const ackMessage = Ack.create(payload);
           message = DeviceMessage.create({
             ack: ackMessage,
+            persistent: inputPersistent,
+            timestamp: inputTimestamp,
+            id: inputId,
+          });
+          break;
+        case "listenCmd":
+          const ListenCmd = root.lookupType("vlock.uart.ListenCmd");
+          const listenCmdMessage = ListenCmd.create(payload);
+          message = DeviceMessage.create({
+            listenCmd: listenCmdMessage,
             persistent: inputPersistent,
             timestamp: inputTimestamp,
             id: inputId,
