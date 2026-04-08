@@ -11,10 +11,11 @@ message DeviceMessage {
     Batterie batterie = 6;
     DebugUART debug_uart = 7;
     RetUART ack = 8;
+    ListenCmd listenCmd = 9;
   }
-  optional bool persistent = 9;
-  optional uint64 timestamp = 10;
-  optional bytes id = 11;
+  optional bool persistent = 10;
+  optional uint64 timestamp = 11;
+  optional bytes id = 12;
 }
 
 message Connexion {
@@ -22,6 +23,8 @@ message Connexion {
 }
 
 message Deconnexion {}
+
+message ListenCmd {}
 
 message BorneOccupee {
   uint32 borne_id = 1;
